@@ -106,6 +106,9 @@ def get_sleep_time_from_error(e: Any) -> float:
     if isinstance(e, RateLimitError) and _please_retry_after in str(e):
         # could be second or seconds
         sleep_time = int(str(e).split(_please_retry_after)[1].split(" second")[0])
+    elif isinstance(e, RateLimitError):
+        # for Chinese model api cloud be fixed second
+        sleep_time = 5.0
 
     return sleep_time
 
