@@ -55,7 +55,6 @@ from .models import (
     UmapConfig,
 )
 from .read_dotenv import read_dotenv
-from ..index.verbs.text.chunk import ChunkStrategyType
 
 InputModelValidator = TypeAdapter(GraphRagConfigInput)
 
@@ -370,7 +369,7 @@ def create_graphrag_config(
             )
         with reader.envvar_prefix(Section.chunk), reader.use(values.get("chunks")):
             chunks_model = ChunkingConfig(
-                type=reader.str("type") or ChunkStrategyType.tokens,
+                type=reader.str("type") or None,
                 size=reader.int("size") or defs.CHUNK_SIZE,
                 overlap=reader.int("overlap") or defs.CHUNK_OVERLAP,
                 group_by_columns=reader.list("group_by_columns", "BY_COLUMNS")

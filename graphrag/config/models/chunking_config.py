@@ -6,13 +6,12 @@
 from pydantic import BaseModel, Field
 
 import graphrag.config.defaults as defs
-from graphrag.index.verbs.text.chunk import ChunkStrategyType
 
 
 class ChunkingConfig(BaseModel):
     """Configuration section for chunking."""
 
-    type: str = Field(description="The Split type", default=ChunkStrategyType.tokens)
+    type: str = Field(description="The Split type", default=None)
     size: int = Field(description="The chunk size to use.", default=defs.CHUNK_SIZE)
     overlap: int = Field(
         description="The chunk overlap to use.", default=defs.CHUNK_OVERLAP
@@ -28,9 +27,10 @@ class ChunkingConfig(BaseModel):
 
     def resolved_strategy(self) -> dict:
         """Get the resolved chunking strategy."""
+        from graphrag.index.verbs.text.chunk import ChunkStrategyType
 
         return self.strategy or {
-            "type": self.type,
+            "type": self.type or ChunkStrategyType.tokens,
             "chunk_size": self.size,
             "chunk_overlap": self.overlap,
             "group_by_columns": self.group_by_columns,

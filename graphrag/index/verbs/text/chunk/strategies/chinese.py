@@ -5,6 +5,7 @@ from datashaper import ProgressTicker
 from .typing import TextChunk
 
 import re
+import logging
 
 from langchain.text_splitter import CharacterTextSplitter
 
@@ -15,10 +16,13 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 DEFAULT_CHUNK_SIZE = 500  # tokens
 DEFAULT_CHUNK_OVERLAP = 0  # tokens
 
+log = logging.getLogger(__name__)
+
 
 def run(
         input: list[str], args: dict[str, Any], tick: ProgressTicker
 ) -> Iterable[TextChunk]:
+    log.info("using chinese text splitter configuration: %s", args)
     keep_separator = args.get("keep_separator", True)
     is_separator_regex = args.get("is_separator_regex", True)
     chunk_size = args.get("chunk_size", DEFAULT_CHUNK_SIZE)
@@ -35,6 +39,7 @@ def run(
                 text_chunk=chunk,
                 source_doc_indices=[doc_idx],
             ))
+        tick(1)
     return textChunks
 
 
