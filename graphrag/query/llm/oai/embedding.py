@@ -26,6 +26,7 @@ from graphrag.query.llm.oai.typing import (
 )
 from graphrag.query.llm.text_utils import chunk_text
 from graphrag.query.progress import StatusReporter
+from graphrag.index.verbs.text.chunk.text_chunk import ChunkStrategyType
 
 
 class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
@@ -75,6 +76,18 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
         For text longer than max_tokens, chunk texts into max_tokens, embed each chunk, then combine using weighted average.
         Please refer to: https://github.com/openai/openai-cookbook/blob/main/examples/Embedding_long_inputs.ipynb
         """
+        chunk_type = kwargs.get("chunk_type", ChunkStrategyType.tokens)
+        if chunk_type == ChunkStrategyType.chinese:
+            try:
+                embedding, chunk_len = self._embed_with_retry(text, **kwargs)
+                return embedding
+            # TODO: catch a more specific exception
+            except Exception as e:  # noqa BLE001
+                self._reporter.error(
+                    message="Error embedding chunk",
+                    details={self.__class__.__name__: str(e)},
+                )
+
         token_chunks = chunk_text(
             text=text, token_encoder=self.token_encoder, max_tokens=self.max_tokens
         )

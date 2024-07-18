@@ -12,6 +12,7 @@ from graphrag.query.input.retrieval.entities import (
 )
 from graphrag.query.llm.base import BaseTextEmbedding
 from graphrag.vector_stores import BaseVectorStore
+from graphrag.index.verbs.text.chunk.text_chunk import ChunkStrategyType
 
 
 class EntityVectorStoreKey(str, Enum):
@@ -42,6 +43,7 @@ def map_query_to_entities(
     exclude_entity_names: list[str] | None = None,
     k: int = 10,
     oversample_scaler: int = 2,
+    chunk_type: str = ChunkStrategyType.tokens,
 ) -> list[Entity]:
     """Extract entities that match a given query using semantic similarity of text embeddings of query and entity descriptions."""
     if include_entity_names is None:
@@ -54,7 +56,7 @@ def map_query_to_entities(
         # oversample to account for excluded entities
         search_results = text_embedding_vectorstore.similarity_search_by_text(
             text=query,
-            text_embedder=lambda t: text_embedder.embed(t),
+            text_embedder=lambda t: text_embedder.embed(t, chunk_type=chunk_type),
             k=k * oversample_scaler,
         )
         for result in search_results:

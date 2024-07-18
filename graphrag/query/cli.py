@@ -151,7 +151,7 @@ def run_local_search(
         response_type=response_type,
     )
 
-    result = search_engine.search(query=query)
+    result = search_engine.search(query=query, chunk_type=config.chunks.type)
     reporter.success(f"Local Search Response: {result.response}")
     return result.response
 
