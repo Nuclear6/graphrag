@@ -26,6 +26,7 @@ from graphrag.query.llm.oai.typing import (
 )
 from graphrag.query.llm.text_utils import chunk_text
 from graphrag.query.progress import StatusReporter
+from graphrag.index.verbs.text.chunk.text_chunk import ChunkStrategyType
 
 
 class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
@@ -75,6 +76,18 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
         For text longer than max_tokens, chunk texts into max_tokens, embed each chunk, then combine using weighted average.
         Please refer to: https://github.com/openai/openai-cookbook/blob/main/examples/Embedding_long_inputs.ipynb
         """
+        chunk_type = kwargs.get("chunk_type", ChunkStrategyType.tokens)
+        if chunk_type == ChunkStrategyType.chinese:
+            try:
+                embedding, chunk_len = self._embed_with_retry(text, **kwargs)
+                return embedding
+            # TODO: catch a more specific exception
+            except Exception as e:  # noqa BLE001
+                self._reporter.error(
+                    message="Error embedding chunk",
+                    details={self.__class__.__name__: str(e)},
+                )
+
         token_chunks = chunk_text(
             text=text, token_encoder=self.token_encoder, max_tokens=self.max_tokens
         )
@@ -91,8 +104,11 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
                     message="Error embedding chunk",
                     details={self.__class__.__name__: str(e)},
                 )
-
                 continue
+
+        if sum(chunk_lens) == 0:
+            raise ValueError("chunk_lens 权重数组的和为零，无法进行平均计算。")
+
         chunk_embeddings = np.average(chunk_embeddings, axis=0, weights=chunk_lens)
         chunk_embeddings = chunk_embeddings / np.linalg.norm(chunk_embeddings)
         return chunk_embeddings.tolist()
@@ -114,6 +130,10 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
         embedding_results = [result for result in embedding_results if result[0]]
         chunk_embeddings = [result[0] for result in embedding_results]
         chunk_lens = [result[1] for result in embedding_results]
+
+        if sum(chunk_lens) == 0:
+            raise ValueError("chunk_lens 权重数组的和为零，无法进行平均计算。")
+
         chunk_embeddings = np.average(chunk_embeddings, axis=0, weights=chunk_lens)  # type: ignore
         chunk_embeddings = chunk_embeddings / np.linalg.norm(chunk_embeddings)
         return chunk_embeddings.tolist()
@@ -121,6 +141,10 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
     def _embed_with_retry(
         self, text: str | tuple, **kwargs: Any
     ) -> tuple[list[float], int]:
+        # 确保 chunk_type 参数不传递给 create 函数
+        if 'chunk_type' in kwargs:
+            del kwargs['chunk_type']
+
         try:
             retryer = Retrying(
                 stop=stop_after_attempt(self.max_retries),
@@ -148,12 +172,15 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
             )
             return ([], 0)
         else:
-            # TODO: why not just throw in this case?
             return ([], 0)
 
     async def _aembed_with_retry(
         self, text: str | tuple, **kwargs: Any
     ) -> tuple[list[float], int]:
+        # 确保 chunk_type 参数不传递给 create 函数
+        if 'chunk_type' in kwargs:
+            del kwargs['chunk_type']
+
         try:
             retryer = AsyncRetrying(
                 stop=stop_after_attempt(self.max_retries),
@@ -178,5 +205,4 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
             )
             return ([], 0)
         else:
-            # TODO: why not just throw in this case?
             return ([], 0)

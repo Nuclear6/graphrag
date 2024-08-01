@@ -35,6 +35,7 @@ class ChunkStrategyType(str, Enum):
 
     tokens = "tokens"
     sentence = "sentence"
+    chinese = "chinese"
 
     def __repr__(self):
         """Get a string representation."""
@@ -43,12 +44,12 @@ class ChunkStrategyType(str, Enum):
 
 @verb(name="chunk")
 def chunk(
-    input: VerbInput,
-    column: str,
-    to: str,
-    callbacks: VerbCallbacks,
-    strategy: dict[str, Any] | None = None,
-    **_kwargs,
+        input: VerbInput,
+        column: str,
+        to: str,
+        callbacks: VerbCallbacks,
+        strategy: dict[str, Any] | None = None,
+        **_kwargs,
 ) -> TableContainer:
     """
     Chunk a piece of text into smaller pieces.
@@ -106,10 +107,10 @@ def chunk(
 
 
 def run_strategy(
-    strategy: ChunkStrategy,
-    input: ChunkInput,
-    strategy_args: dict[str, Any],
-    tick: ProgressTicker,
+        strategy: ChunkStrategy,
+        input: ChunkInput,
+        strategy_args: dict[str, Any],
+        tick: ProgressTicker,
 ) -> list[str | tuple[list[str] | None, str, int]]:
     """Run strategy method definition."""
     if isinstance(input, str):
@@ -157,6 +158,10 @@ def load_strategy(strategy: ChunkStrategyType) -> ChunkStrategy:
 
             bootstrap()
             return run_sentence
+        case ChunkStrategyType.chinese:
+            from .strategies.chinese import run as run_chinese
+
+            return run_chinese
         case _:
             msg = f"Unknown strategy: {strategy}"
             raise ValueError(msg)

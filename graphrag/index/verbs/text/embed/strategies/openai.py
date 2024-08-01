@@ -31,6 +31,7 @@ async def run(
     if is_null(input):
         return TextEmbeddingResult(embeddings=None)
 
+    log.debug("text embedding input=%s", input)
     llm_config = args.get("llm", {})
     batch_size = args.get("batch_size", 16)
     batch_max_tokens = args.get("batch_max_tokens", 8191)
@@ -47,6 +48,7 @@ async def run(
         batch_max_tokens,
         splitter,
     )
+    log.debug("text embedding prepared input=%s, size=%s", texts, input_sizes)
     log.info(
         "embedding %d inputs via %d snippets using %d batches. max_batch_size=%d, max_tokens=%d",
         len(input),
@@ -95,6 +97,7 @@ async def _execute(
     semaphore: asyncio.Semaphore,
 ) -> list[list[float]]:
     async def embed(chunk: list[str]):
+        log.debug("text embedding chunk=%s", chunk)
         async with semaphore:
             chunk_embeddings = await llm(chunk)
             result = np.array(chunk_embeddings.output)
